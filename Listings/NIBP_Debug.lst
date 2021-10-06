@@ -1,0 +1,172 @@
+C51 COMPILER V9.54   NIBP_DEBUG                                                            06/07/2018 11:53:01 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE NIBP_DEBUG
+OBJECT MODULE PLACED IN .\Objects\NIBP_Debug.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Src\NIBP_Debug.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Include) DEBUG OBJECT
+                    -EXTEND PRINT(.\Listings\NIBP_Debug.lst) OBJECT(.\Objects\NIBP_Debug.obj)
+
+line level    source
+
+   1          #include <SZC909.H>
+   2          #include "SystemConstant.h"
+   3          #include "NIBP_Lcd.h"
+   4          #include "NIBP_APP.h"
+   5          #include "NIBP_Timer.h"
+   6          #include "NIBP_Key.h"
+*** WARNING C318 IN LINE 6 OF Src\NIBP_Debug.c: can't open file 'NIBP_Key.h'
+   7          #include "NIBP_ADC.h"
+   8          #include "NIBP_PWM.h"
+*** WARNING C318 IN LINE 8 OF Src\NIBP_Debug.c: can't open file 'NIBP_PWM.h'
+   9          #include "NIBP_ISP.h"
+*** WARNING C318 IN LINE 9 OF Src\NIBP_Debug.c: can't open file 'NIBP_ISP.h'
+  10          #include "NIBP_Uart.h"
+*** WARNING C318 IN LINE 10 OF Src\NIBP_Debug.c: can't open file 'NIBP_Uart.h'
+  11          #include "NIBP_Debug.h"
+  12          #include "NIBP_Lib.h"
+*** WARNING C318 IN LINE 12 OF Src\NIBP_Debug.c: can't open file 'NIBP_Lib.h'
+  13          
+  14          bit Debug_Mode_Flag=0;      //调试状态标志位
+  15          
+  16          uint8 xdata Debug_LCD_Index=0;  //显示索引号
+  17          
+  18          uint8 xdata NIBP_DEBUG_FSM=0;           //标定流程选择
+  19          
+  20          /***************************************************
+  21          调试流程
+  22          ****************************************************/
+  23          void Debug_Process(void)
+  24          {
+  25   1              switch(NIBP_DEBUG_FSM)
+  26   1              {
+  27   2              case 0x00:                  //----------第1步,先较零满度----------
+  28   2              {
+  29   3                  if(ADC_Avg_Data < SYS_HALFmmHG_DATA)    //小于半满度  才执行
+  30   3                  {
+  31   4                      if(!fAdjust_Zero_En)        //未较正成功
+  32   4                      {
+  33   5                          Adjust_0mmHg();
+  34   5                      }
+  35   4                      else
+  36   4                      {
+  37   5                          Cal_0mmHg_is_ok();              //0mmHg 成功
+  38   5                          Close_EMV();                                        //关闭阀门
+*** WARNING C206 IN LINE 38 OF Src\NIBP_Debug.c: 'Close_EMV': missing function-prototype
+  39   5                          delay_ms(100);                  //作小延时
+*** WARNING C206 IN LINE 39 OF Src\NIBP_Debug.c: 'delay_ms': missing function-prototype
+*** ERROR C267 IN LINE 39 OF Src\NIBP_Debug.c: 'delay_ms': requires ANSI-style prototype
+  40   5                          LCD_Mode=LCD_CAL_300MMHG;
+  41   5                          NIBP_DEBUG_FSM=0x01;            //成功
+  42   5                      }
+  43   4                  }
+  44   3      
+  45   3                              break;
+  46   3              }
+C51 COMPILER V9.54   NIBP_DEBUG                                                            06/07/2018 11:53:01 PAGE 2   
+
+  47   2                      case 0x01:                  //----------第2步,较满度----------
+  48   2              {
+  49   3                              if(ADC_Avg_Data > SYS_HALFmmHG_DATA)    //大于半满度  才执行
+  50   3                  {
+  51   4                      if(!fAdjust_succ_En)        //未较正成功
+  52   4                      {
+  53   5                          Adjust_300mmHg();
+  54   5                      }
+  55   4                      else
+  56   4                      {
+  57   5                          Cal_300mmHg_is_ok();        //300mmHg 较正成功
+  58   5                          
+  59   5                          MEMORY_TAB[0]=120-30;       //收缩压
+*** ERROR C202 IN LINE 59 OF Src\NIBP_Debug.c: 'MEMORY_TAB': undefined identifier
+  60   5                          MEMORY_TAB[1]=80;           //舒张压
+*** ERROR C202 IN LINE 60 OF Src\NIBP_Debug.c: 'MEMORY_TAB': undefined identifier
+  61   5                          MEMORY_TAB[2]=80;           //心率
+*** ERROR C202 IN LINE 61 OF Src\NIBP_Debug.c: 'MEMORY_TAB': undefined identifier
+  62   5                          
+  63   5                          Write_Data_Memory();        //保存结果
+  64   5                          
+  65   5                          fGetZeroEn=Enable;
+  66   5                          LCD_Mode=LCD_ALL_OFF;
+  67   5                          NIBP_DEBUG_FSM=0x02;
+  68   5                      }
+  69   4                  }
+  70   3                  
+  71   3                              break;
+  72   3              }
+  73   2                      case 0x02:                  //----------第3步,此时可以看静压----------
+  74   2              {   
+  75   3                  Read_Adjust_300mmHg_data();         //读取标定数据
+  76   3                  Read_ADC_Ratio_data();          //读取标定系数
+  77   3                  
+  78   3                  LCD_Mode=LCD_DEBUG_MEASURE;     //调试态的静压模式
+  79   3                  
+  80   3                  NIBP_DEBUG_FSM=0x03;
+  81   3                  
+  82   3                              break;
+  83   3              }
+  84   2                      case 0x03:                  //----------第4步,小于满度时,按下M键,看轮流显----------
+  85   2              {
+  86   3                              ADC_Data_Process();                             //AD处理      可以看静压
+  87   3                  
+  88   3                  if(ADC_Avg_Data < SYS_HALFmmHG_DATA)    //小于半满度  才执行按键动作
+  89   3                  {
+  90   4                      if(Keydata==0x02)               //按下M键
+  91   4                      {
+  92   5                          Keydata=0;
+  93   5                          NIBP_DEBUG_FSM=0x04;
+  94   5                          LCD_Mode=LCD_ALL_OFF;
+  95   5                          
+  96   5                          Blink_Zero_Time_Reload(0);       //浮零闪烁时间关闭
+  97   5                      }       
+  98   4                  }
+  99   3                  
+ 100   3                              break;
+ 101   3              }
+ 102   2              case 0x04:                  //----------第5步前准备----------
+ 103   2              {   
+ 104   3                  Debug_LCD_Index=0;
+ 105   3                  RTime=30;
+C51 COMPILER V9.54   NIBP_DEBUG                                                            06/07/2018 11:53:01 PAGE 3   
+
+ 106   3                  LCD_Mode=LCD_DEBUG_SHOW;
+ 107   3                  NIBP_DEBUG_FSM=0x05;
+ 108   3                  
+ 109   3                  break;
+ 110   3              }
+ 111   2              case 0x05:                  //----------第5步,轮流显示----------
+ 112   2              {   
+ 113   3      //            ADC_Data_Process();                               //AD处理     
+ 114   3                  
+ 115   3                  if(RTime==0)
+ 116   3                  {
+ 117   4                      RTime=30;
+ 118   4                      Debug_LCD_Index++;
+ 119   4                      ClearDisplay();
+ 120   4                      
+ 121   4                      if(Debug_LCD_Index>10)          //显示结束 
+ 122   4                      {
+ 123   5                          NIBP_DEBUG_FSM=0x06;
+ 124   5                          LCD_Mode=LCD_ALL_OFF;
+ 125   5                      }
+ 126   4                  }
+ 127   3                  
+ 128   3                  break;
+ 129   3              }
+ 130   2              case 0x06:              //----------第6步,看静压前准备----------
+ 131   2              {
+ 132   3                  if(ADC_Avg_Data < SYS_HALFmmHG_DATA)    //小于半满度  才执行以下动作
+ 133   3                  {
+ 134   4                      RTime=0;
+ 135   4                      NIBP_FSM=PRESSURE_LCD_ALL_ON;
+ 136   4                      Debug_Mode_Flag=0;
+ 137   4                  }
+ 138   3                  
+ 139   3                  break;
+ 140   3              }
+ 141   2              }
+ 142   1      }
+ 143          
+ 144          
+ 145          
+
+C51 COMPILATION COMPLETE.  7 WARNING(S),  4 ERROR(S)

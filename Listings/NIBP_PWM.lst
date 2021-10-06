@@ -1,0 +1,160 @@
+C51 COMPILER V9.54   NIBP_PWM                                                              06/04/2018 13:55:00 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE NIBP_PWM
+OBJECT MODULE PLACED IN .\Objects\NIBP_PWM.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Src\NIBP_PWM.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Include) DEBUG OBJECTEX
+                    -TEND PRINT(.\Listings\NIBP_PWM.lst) OBJECT(.\Objects\NIBP_PWM.obj)
+
+line level    source
+
+   1          #include <SZC909.H>
+   2          #include "SystemConstant.h"
+   3          #include "NIBP_PWM.h"
+   4          
+   5          bit PUMP_En_Flag=Disable;
+   6          bit EMV_En_Flag=Disable;
+   7          
+   8          uint8 xdata tc0_duty_temp=DUTY_OFF;     
+   9          uint8 xdata tc1_duty_temp=DUTY_OFF;     
+  10          
+  11          void SYS_TC0_Interrupt(void) interrupt ISRTC0
+  12          {
+  13   1          TCF0=0;
+  14   1      }
+  15          
+  16          void SYS_TC1_Interrupt(void) interrupt ISRTC1
+  17          {
+  18   1          TCF1=0;
+  19   1      }
+  20          
+  21          void PWM_Init(void)
+  22          {
+  23   1          //=== Init Timer/Counter 0 ===      Pump
+  24   1          TC0M = 0xD6;                                                        //Fhosc/4        + P06 outputs PWM signal + Enable TC0 timer
+  25   1          tc0_duty_temp = DUTY_OFF;                           //TC0_DUTY_INIT Output PWM LOW
+  26   1          
+  27   1          /*  
+  28   1          TC0C = 65536 - TC0_INTERVAL;                        //Init load data 
+  29   1          TC0R = 65536 - TC0_INTERVAL;                        //Init re-load data 
+  30   1          TC0D = 65536 - (TC0_INTERVAL+tc0_duty_temp);//Init duty cycle data
+  31   1          */          
+  32   1      
+  33   1          TC0CH = (65536-TC0_INTERVAL)>>8;            //Init load high byte data 
+  34   1          TC0RH = (65536-TC0_INTERVAL)>>8;            //Init re-load high byte data 
+  35   1      
+  36   1          TC0CL = (unsigned int)(65536-TC0_INTERVAL);     //Init load low byte data 
+  37   1          TC0RL = (unsigned int)(65536-TC0_INTERVAL);     //Init re-load low byte data 
+  38   1      
+  39   1          TC0DH = (65536-TC0_INTERVAL+tc0_duty_temp)>>8;  //Init duty cycle high byte data 
+  40   1          TC0DL = 65536-TC0_INTERVAL+tc0_duty_temp;           //Init duty cycle low byte data 
+  41   1      
+  42   1          //=== Init Timer/Counter 1 ===      Valve
+  43   1          TC1M = 0xD6;                                                                        //Fhosc/4        + P07 outputs PWM signal + Enable TC1 timer
+  44   1          tc1_duty_temp = DUTY_OFF;                                           //TC0_DUTY_INIT Output PWM LOW 
+  45   1          /*
+  46   1          TC1C = 65536 - TC0_INTERVAL;                                        //Init load data        
+  47   1          TC1R = 65536 - TC0_INTERVAL;                                        //Init re-load data
+  48   1          TC1D = 65536 - (TC1_INTERVAL+tc1_duty_temp);    //Init duty cycle data 
+  49   1          */  
+  50   1      
+  51   1          TC1CH = (65536-TC1_INTERVAL)>>8;                            //Init load high byte data 
+  52   1          TC1RH = (65536-TC1_INTERVAL)>>8;                            //Init re-load high byte data 
+  53   1      
+  54   1          TC1CL = (unsigned int)(65536-TC1_INTERVAL);     //Init load low byte data 
+C51 COMPILER V9.54   NIBP_PWM                                                              06/04/2018 13:55:00 PAGE 2   
+
+  55   1          TC1RL = (unsigned int)(65536-TC1_INTERVAL);     //Init re-load low byte data 
+  56   1      
+  57   1          TC1DH = (65536-TC1_INTERVAL+tc1_duty_temp)>>8;  //Init duty cycle high byte data 
+  58   1          TC1DL = 65536-TC1_INTERVAL+tc1_duty_temp;           //Init duty cycle low byte data 
+  59   1              
+  60   1      }
+  61          
+  62          void PWM0_Duty_Update(void)
+  63          {
+  64   1      //      TC0D = 65536 - (TC0_INTERVAL+tc0_duty_temp);        //Init duty cycle data
+  65   1      
+  66   1          TC0DH = (65536-TC0_INTERVAL+tc0_duty_temp)>>8;      //Init duty cycle high byte data 
+  67   1          TC0DL = 65536-TC0_INTERVAL+tc0_duty_temp;                   //Init duty cycle low byte data
+  68   1      
+  69   1      }
+  70          
+  71          void PWM1_Duty_Update(void)
+  72          {
+  73   1      //      TC1D = 65536 - (TC1_INTERVAL+tc1_duty_temp);    //Init duty cycle data 
+  74   1      
+  75   1          TC1DH = (65536-TC1_INTERVAL+tc1_duty_temp)>>8;  //Init duty cycle high byte data 
+  76   1          TC1DL = 65536-TC1_INTERVAL+tc1_duty_temp;                   //Init duty cycle low byte data 
+  77   1                      
+  78   1      }
+  79          
+  80          /************************************************************
+  81          关闭Pump
+  82          *************************************************************/
+  83          void Close_PUMP(void)
+  84          {
+  85   1          PUMP_En_Flag=Enable;
+  86   1          tc1_duty_temp=DUTY_OFF;                             
+  87   1      }
+  88          
+  89          /************************************************************
+  90          打开EMV泄气
+  91          ************************************************************/
+  92          void Open_EMV(void)
+  93          {
+  94   1          EMV_En_Flag=Enable;
+  95   1          tc0_duty_temp=DUTY_OFF;
+  96   1      }
+  97          
+  98          /************************************************************
+  99          锁住EMV
+ 100          ************************************************************/
+ 101          void Close_EMV(void)
+ 102          {
+ 103   1          EMV_En_Flag=Enable;
+ 104   1          tc0_duty_temp = DUTY_ON_99;         
+ 105   1      }
+ 106          
+ 107          
+ 108          /************************************************************
+ 109          充气泵控制
+ 110          ************************************************************/
+ 111          void PUMP_Control(void)
+ 112          {
+ 113   1          if(PUMP_En_Flag)            //泵打开标志
+ 114   1          {
+ 115   2              PUMP_En_Flag=Disable;
+ 116   2              PWM1_Duty_Update();     
+C51 COMPILER V9.54   NIBP_PWM                                                              06/04/2018 13:55:00 PAGE 3   
+
+ 117   2          }
+ 118   1      }
+ 119          
+ 120          /************************************************************
+ 121          放气阀控制
+ 122          ************************************************************/
+ 123          void EMV_Control(void)
+ 124          {
+ 125   1          if(EMV_En_Flag)
+ 126   1          {
+ 127   2              EMV_En_Flag = Disable;
+ 128   2              PWM0_Duty_Update();
+ 129   2          }
+ 130   1      }
+ 131          
+ 132          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    191    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      2    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

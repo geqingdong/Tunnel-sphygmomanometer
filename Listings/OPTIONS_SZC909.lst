@@ -1,0 +1,80 @@
+A51 MACRO ASSEMBLER  OPTIONS_SZC909                                                       12/30/2020 09:35:08 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.02c
+OBJECT MODULE PLACED IN .\Objects\OPTIONS_SZC909.obj
+ASSEMBLER INVOKED BY: D:\GJ\MDK\C51\BIN\A51.EXE OPTIONS_SZC909.A51 SET(SMALL) DEBUG PRINT(.\Listings\OPTIONS_SZC909.lst)
+                       OBJECT(.\Objects\OPTIONS_SZC909.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     $nomod51 
+                       2     ;------------------------------------------------------------------------------
+                       3     ;
+                       4     ;  Copyright (c) 2015 SONiX Technology Co., Ltd.
+                       5     ;  Version 1.0 - SZC909, SZC908
+                       6     ;
+                       7     ;  *** <<< Use Configuration Wizard in Context Menu >>> ***
+                       8     ;------------------------------------------------------------------------------
+                       9     ;
+                      10     ;  This preference, such as watchdog, external reset pin, and clock source, is preloaded 
+                      11     ;  during the microcontroller's power-on. It is strongly recommanded to use configuration 
+                      12     ;  wizard to set these parameters up appropriately.
+                      13     ;
+                      14     ;------------------------------------------------------------------------------
+  FFFF                15     ROM_SIZE EQU 0XFFFF
+                      16     
+                      17     ;   <o> Program Memory Security <0x00=> Enable <0x01=> Disable
+  0001                18             SECURITY_SET    EQU     0x01    ;       {0x3FFF}
+                      19     ;   <i> The debug interface cannot read program memory if this security option is enable.
+                      20     ;   <i> Erase All Program Memory Action can be proformmed.
+                      21     ;
+                      22     ;   <o.1> CPU Clock Source <0x00=> IHRC_RTC <0x01=> IHRC 
+  0002                23         CLOCKSRC_SET    EQU     0x02        ;       {0x3FFF}
+                      24     ;   <i> IHRC: P20/P21 as IO function.
+                      25     ;   <i> IHRC_RTC: P20/P21 connect 32768Hz X'tal.
+                      26     ;
+                      27     ;   <o> Noise Filter <0x01=> Disable <0x00=> Enable
+  0000                28         NOISEFILT_SET   EQU     0x00        ;       {0x3FFC}
+                      29     
+                      30     ;
+                      31     ;   <o.4..7> Watchdog <0x00=> Always <0x05=> Enable <0x0A=> Disable
+  00A0                32         WATCHDOG_SET    EQU     0xA0        ;       {0x3FFF}
+                      33     ;   <i> Always: Trun on watchdog function including Normal, IDLE, and SLEEP mode.
+                      34     ;   <i> Enable: Turn on watchdog function only in Normal mode.
+                      35     ;   <i> Disable: Turn off watchdog function.
+                      36     ;
+                      37     ;   <o.6..7> Watchdog Overflow Period <0x00=> 64 ms <0x01=> 128 ms <0x02=> 256 ms <0x03=> 5
+                             12 ms
+  00C0                38         WATCHCLK_SET    EQU     0xC0
+                      39     ;   <i> The watchdog overflow period is based on Internal Low R-C Clock which has a gentle 
+                             inaccuracy.
+                      40     
+                      41     
+----                  42         CSEG    AT      0xFFFB              
+FFFB FA               43             DB      0xF8 + NOISEFILT_SET + 0x02                             
+FFFC FE               44         DB      0x3E + WATCHCLK_SET + NOISEFILT_SET
+FFFD 5A               45         DB      0x5A
+FFFE A5               46         DB      0xA5
+FFFF AF               47         DB      0x0C + WATCHDOG_SET + CLOCKSRC_SET + SECURITY_SET
+                      48         END
+A51 MACRO ASSEMBLER  OPTIONS_SZC909                                                       12/30/2020 09:35:08 PAGE     2
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+CLOCKSRC_SET . . .  N NUMB   0002H   A   
+NOISEFILT_SET. . .  N NUMB   0000H   A   
+ROM_SIZE . . . . .  N NUMB   FFFFH   A   
+SECURITY_SET . . .  N NUMB   0001H   A   
+WATCHCLK_SET . . .  N NUMB   00C0H   A   
+WATCHDOG_SET . . .  N NUMB   00A0H   A   
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
